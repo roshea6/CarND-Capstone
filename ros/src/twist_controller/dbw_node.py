@@ -8,6 +8,7 @@ import math
 
 from twist_controller import Controller
 
+
 '''
 You can build this node only after you have built (or partially built) the `waypoint_updater` node.
 
@@ -54,9 +55,21 @@ class DBWNode(object):
                                          BrakeCmd, queue_size=1)
 
         # TODO: Create `Controller` object
-        # self.controller = Controller(<Arguments you wish to provide>)
+        self.controller = Controller(vehicle_mass, fuel_capacity, decel_limit, accel_limit, wheel_radius, wheel_base, steer_ratio, brake_deadband, max_lat_accel, max_steer_angle)
 
+        # Variables for storing current velocity and desired velocity
+        self.current_vel = None
+        self.proposed_lin_vel = None
+        self.proposed_ang_vel = None
+        
+        # Keep track of drive by wire status
+        self.dbw_status = None
+        
         # TODO: Subscribe to all the topics you need to
+        rospy.Subscriber('/current_velocity', TwistStamped, self.currentVelCallback)
+        rospy.Subscriber('/twist_cmd', TwistStamped, self.proposedVelCallback)
+        rospy.Subscriber('/vehicle/dbw_enabled', Bool, self.dbwUpdateCallback)
+        
 
         self.loop()
 
@@ -65,13 +78,20 @@ class DBWNode(object):
         while not rospy.is_shutdown():
             # TODO: Get predicted throttle, brake, and steering using `twist_controller`
             # You should only publish the control commands if dbw is enabled
-            # throttle, brake, steering = self.controller.control(<proposed linear velocity>,
-            #                                                     <proposed angular velocity>,
-            #                                                     <current linear velocity>,
-            #                                                     <dbw status>,
-            #                                                     <any other argument you need>)
-            # if <dbw is enabled>:
-            #   self.publish(throttle, brake, steer)
+            if not None in (self.proposed_lin_vel, self.proposed_ang_vel, self.current_vel): 
+                throttle, brake, steering = self.controller.control(self.proposed_lin_vel,
+                                                                    self.proposed_ang_vel,
+                                                                    self.current_vel,
+                                                                    self.dbw_status)
+                if self.dbw_status == True:
+                  self.publish(throttle, brake, steering)
+                else:
+                    print("Car currently not in DBW mode")
+            else:
+                print("One of the vel values is None")
+                print("Proposed lin {}".format(self.proposed_lin_vel))
+                print("Proposed ang {}".format(self.proposed_ang_vel))
+                print("Actual lin {}".format(self.current_vel))
             rate.sleep()
 
     def publish(self, throttle, brake, steer):
@@ -91,6 +111,22 @@ class DBWNode(object):
         bcmd.pedal_cmd_type = BrakeCmd.CMD_TORQUE
         bcmd.pedal_cmd = brake
         self.brake_pub.publish(bcmd)
+        
+    # Updates the current velocity based on the value reported by the simulator
+    def currentVelCallback(self, msg):
+        self.current_vel = msg.twist.linear.x
+        
+    # Updates the proposed linear and angular velocities based on the most recent twist message
+    def proposedVelCallback(self, msg):
+        # Extract the linear velocity from the message
+        self.proposed_lin_vel = msg.twist.linear.x
+        
+        # Extract the angular velocity from the message
+        self.proposed_ang_vel = msg.twist.angular.z
+        
+    # Update drive by wire status published by the simulator
+    def dbwUpdateCallback(self, msg):
+        self.dbw_status = msg.data
 
 
 if __name__ == '__main__':
