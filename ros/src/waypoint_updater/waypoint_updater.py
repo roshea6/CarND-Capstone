@@ -23,7 +23,8 @@ as well as to verify your TL classifier.
 TODO (for Yousuf and Aaron): Stopline location for each traffic light.
 '''
 
-LOOKAHEAD_WPS = 200 # Number of waypoints we will publish. You can change this number
+# Having this number at 200 broke the code. I think it was taking too long to generate that many waypoints so the path would lag in the simulator
+LOOKAHEAD_WPS = 75 # Number of waypoints we will publish. You can change this number
 
 
 class WaypointUpdater(object):
@@ -40,69 +41,80 @@ class WaypointUpdater(object):
         self.final_waypoints_pub = rospy.Publisher('final_waypoints', Lane, queue_size=1)
 
         # TODO: Add other member variables you need below
+        # Store the pose of the car from the simulator
+        self.car_pose = None
         
         # Create a blank lane message to store the list of waypoints in when it's first published
-        self.all_waypoints = Lane()
+        self.all_waypoints = None
         
         # Create a placeholder for the x,y waypoints so we can easily reference them
         self.xy_waypoints = None
         
         # Create a placeholder for the x,y waypoints stored in a KDTree
         self.kdt_waypoints = None
-
-        rospy.spin()
+        
+        # Call the main waypoint generation function which will loop at 50hz
+        self.generate_waypoints()
 
     # Looks through all the waypoints to find the first n waypoints in front of the car's current pose
     def pose_cb(self, msg):
         # TODO: Implement
-        # Blank lane message to be populated with waypoints and then published to the final waypoints publisher
-        final_waypoints = Lane()
+        self.car_pose = msg
         
-        # Used to keep track of how many waypoints we've added to our message
-        num_waypoints = 0
-        
-        # Grab the x and y values from the car pose 
-        x = msg.pose.position.x
-        y = msg.pose.position.y
-        
-        # Get the index of the closest waypoint to the car from the KD Tree
-        # This is basically just performing a vry efficient nearest neighbor search
-        if not self.kdt_waypoints:
-            return
-        else:
-            closest_idx = self.kdt_waypoints.query([x, y], 1)[1] # Index 1 grabs the index of the result instead of the result point
-        
-        # Get the closest coordinate and the one directly behind it in the list of waypoints
-        closest_coord = self.xy_waypoints[closest_idx]
-        prev_coord = self.xy_waypoints[closest_idx - 1] # If these ends up being negative it should just grab the last point in the array
-        
-        # Create vectors from the 3 relevant points so we can determine which direction they're facing in
-        closest_coord_vec = np.array(closest_coord)
-        prev_coord_vec = np.array(prev_coord)
-        car_pos_vec = np.array([x, y])
-        
-        # Determine if the vector between the car and closest point and the vector between the closest point and and previous point are pointing in the same direction using the dot product
-        
-        # Scenario 1
-        # If the dot product between these two vectors is less than zero then the vectors are pointing in opposite directions
-        # This means that the closest point is in front of the car and the point before that is behind the car   *(prev_coord)<---vec1--- car ----vec2--->*(closest_coord)
-        
-        # Scenario 2 
-        # If the dot product between these two vectors is greater than zero then the vectors are pointing in the same direction
-        # This means that the closest point is behind the car and the point before that is also behind the car  *(prev_coord)<---vec1--- *(closest_coord)<---vec2--- car
-        prod = np.dot(closest_coord_vec - car_pos_vec, car_pos_vec - closest_coord_vec)
-        
-        # If the result is positive then take the point next in the list after the closest point
-        if prod > 0:
-            closest_idx = (closest_idx+1)%len(self.xy_waypoints) # Mod by the number of waypoints to loop around instead of going out of bounds
-        
-        
-        # Populate the final waypoints with the n many waypoints after the closest coordinate index
-        final_waypoints.header = self.all_waypoints.header
-        final_waypoints.waypoints = self.all_waypoints.waypoints[closest_idx: closest_idx + LOOKAHEAD_WPS]                    
-        
-        # Publish the waypoints
-        self.final_waypoints_pub.publish(final_waypoints)
+    # Generate waypoints at a 50 hz rate
+    def generate_waypoints(self):
+        rate = rospy.Rate(50)
+        # Loop until roscore is shut down
+        while not rospy.is_shutdown():
+            # Make sure that a car pose and the waypoints are available
+            if self.car_pose and self.all_waypoints:
+                # Grab the x and y values from the car pose 
+                x = self.car_pose.pose.position.x
+                y = self.car_pose.pose.position.y
+
+                # Get the index of the closest waypoint to the car from the KD Tree
+                # This is basically just performing a very efficient nearest neighbor search
+                if not self.kdt_waypoints:
+                    # If the KD tree hasn't been made yet then just skip to the next iteration in the loop
+                    continue
+                else:
+                    closest_idx = self.kdt_waypoints.query([x, y], 1)[1] # Index 1 grabs the index of the result instead of the result point
+
+                # Get the closest coordinate and the one directly behind it in the list of waypoints
+                closest_coord = self.xy_waypoints[closest_idx]
+                prev_coord = self.xy_waypoints[closest_idx - 1] # If these ends up being negative it should just grab the last point in the array
+
+                # Create vectors from the 3 relevant points so we can determine which direction they're facing in
+                closest_coord_vec = np.array(closest_coord)
+                prev_coord_vec = np.array(prev_coord)
+                car_pos_vec = np.array([x, y])
+
+                # Determine if the vector between the car and closest point and the vector between the closest point and and previous point are pointing in the same direction using the dot product
+
+                # Scenario 1
+                # If the dot product between these two vectors is less than zero then the vectors are pointing in opposite directions
+                # This means that the closest point is in front of the car and the point before that is behind the car   *(prev_coord)<---vec1--- car ----vec2--->*(closest_coord)
+
+                # Scenario 2 
+                # If the dot product between these two vectors is greater than zero then the vectors are pointing in the same direction
+                # This means that the closest point is behind the car and the point before that is also behind the car  *(prev_coord)<---vec1--- *(closest_coord)<---vec2--- car
+                prod = np.dot(closest_coord_vec - prev_coord_vec, car_pos_vec - closest_coord_vec)
+
+                # If the result is positive then take the point next in the list after the closest point
+                if prod > 0:
+                    closest_idx = (closest_idx+1)%len(self.xy_waypoints) # Mod by the number of waypoints to loop around instead of going out of bounds
+
+                # Blank lane message to be populated with waypoints and then published to the final waypoints publisher
+                final_waypoints = Lane()
+                    
+                # Populate the final waypoints with the n many waypoints after the closest coordinate index
+                final_waypoints.header = self.all_waypoints.header
+                final_waypoints.waypoints = self.all_waypoints.waypoints[closest_idx: closest_idx + LOOKAHEAD_WPS]                    
+
+                # Publish the waypoints
+                self.final_waypoints_pub.publish(final_waypoints)
+            # Sleep to hit the desired frequency
+            rate.sleep()
                 
         
 

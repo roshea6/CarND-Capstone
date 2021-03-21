@@ -85,13 +85,13 @@ class DBWNode(object):
                                                                     self.dbw_status)
                 if self.dbw_status == True:
                   self.publish(throttle, brake, steering)
-                else:
-                    print("Car currently not in DBW mode")
-            else:
-                print("One of the vel values is None")
-                print("Proposed lin {}".format(self.proposed_lin_vel))
-                print("Proposed ang {}".format(self.proposed_ang_vel))
-                print("Actual lin {}".format(self.current_vel))
+                #else:
+                    #print("Car currently not in DBW mode")
+            #else:
+                #print("One of the vel values is None")
+                #print("Proposed lin {}".format(self.proposed_lin_vel))
+                #print("Proposed ang {}".format(self.proposed_ang_vel))
+                #print("Actual lin {}".format(self.current_vel))
             rate.sleep()
 
     def publish(self, throttle, brake, steer):
