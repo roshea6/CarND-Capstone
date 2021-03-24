@@ -4,6 +4,7 @@ ONE_MPH = 0.44704
 
 from yaw_controller import YawController
 from pid import PID
+import rospy
 
 class Controller(object):
     def __init__(self, vehicle_mass, fuel_capacity, decel_limit, accel_limit, wheel_radius, wheel_base, steer_ratio, min_speed, max_lat_accel, max_steer_angle):
@@ -17,12 +18,19 @@ class Controller(object):
         
         self.yaw_control = YawController(wheel_base, steer_ratio, min_speed, max_lat_accel, max_steer_angle)
         
+        # Use rospy to keep track of the time between steps
+        self.prev_time = rospy.get_time()
+        
 
     def control(self, proposed_lin_vel, proposed_ang_vel, current_vel, dbw_status):
         # TODO: Change the arg, kwarg list to suit your needs
         # Return throttle, brake, steer
         vel_error = proposed_lin_vel - current_vel
-        sample_time = 1.0/50.0 # Not sure if this is correct. Might need to compare the time stamps between ROS messages instead of just hard coding to 50hz
+        
+        # Get the time between steps
+        current_time = rospy.get_time()
+        sample_time = current_time - self.prev_time
+        self.prev_time = current_time
         
         # If drive by wire isn't active then return nothing before doing any calculations to prevent unnecessary error buildup in PID
         if dbw_status == False:
