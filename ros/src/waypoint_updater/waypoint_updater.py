@@ -23,6 +23,8 @@ as well as to verify your TL classifier.
 TODO (for Yousuf and Aaron): Stopline location for each traffic light.
 '''
 
+# TODO: Car seems to break after 1 full lap? Waypoints just stopped updating for a while and car swered off track
+
 # Having this number at 200 broke the code. I think it was taking too long to generate that many waypoints so the path would lag in the simulator
 LOOKAHEAD_WPS = 75 # Number of waypoints we will publish. You can change this number
 
