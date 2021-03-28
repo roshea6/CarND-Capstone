@@ -3,6 +3,7 @@
 import rospy
 from geometry_msgs.msg import PoseStamped
 from styx_msgs.msg import Lane, Waypoint
+from std_msgs.msg import Int32
 import numpy as np
 from scipy.spatial import KDTree
 
@@ -38,13 +39,18 @@ class WaypointUpdater(object):
         rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
 
         # TODO: Add a subscriber for /traffic_waypoint and /obstacle_waypoint below
+        rospy.Subscriber('/traffic_waypoint', Int32, self.traffic_cb)
 
         
         self.final_waypoints_pub = rospy.Publisher('final_waypoints', Lane, queue_size=1)
+        
+       
 
         # TODO: Add other member variables you need below
         # Store the pose of the car from the simulator
         self.car_pose = None
+        
+        self.car_vel = None
         
         # Create a blank lane message to store the list of waypoints in when it's first published
         self.all_waypoints = None
@@ -54,6 +60,9 @@ class WaypointUpdater(object):
         
         # Create a placeholder for the x,y waypoints stored in a KDTree
         self.kdt_waypoints = None
+        
+         # Use -1 to represent no lights currently being red
+        self.light_idx = -1
         
         # Call the main waypoint generation function which will loop at 50hz
         self.generate_waypoints()
@@ -105,13 +114,46 @@ class WaypointUpdater(object):
                 # If the result is positive then take the point next in the list after the closest point
                 if prod > 0:
                     closest_idx = (closest_idx+1)%len(self.xy_waypoints) # Mod by the number of waypoints to loop around instead of going out of bounds
-
+                    
+                    
                 # Blank lane message to be populated with waypoints and then published to the final waypoints publisher
                 final_waypoints = Lane()
                     
                 # Populate the final waypoints with the n many waypoints after the closest coordinate index
                 final_waypoints.header = self.all_waypoints.header
-                final_waypoints.waypoints = self.all_waypoints.waypoints[closest_idx: closest_idx + LOOKAHEAD_WPS]                    
+                final_waypoints.waypoints = self.all_waypoints.waypoints[closest_idx: closest_idx + LOOKAHEAD_WPS]    
+                
+                
+                # TODO: Determine if the closest traffic light waypoint is within a certain distance threshold
+                if not self.light_idx == -1:
+                    print("Car: {}".format(closest_idx))
+                    print("Light: {}".format(self.light_idx))
+                    
+                    # TODO: Somehow getting zero distance between these? Light idx also keeps being behind the closest idx
+                    dist = self.distance(self.all_waypoints.waypoints, closest_idx, self.light_idx)
+                    
+                    print("Distance {}".format(dist))
+                    
+                    # If within the threshold then begin decelerating the car
+                    if dist <= 25 and closest_idx < self.light_idx:
+                        current_vel = self.get_waypoint_velocity(self.all_waypoints.waypoints[closest_idx])
+                        speed_decrement = float(self.light_idx - closest_idx)/current_vel
+                        
+                        print("Decrement {}".format(speed_decrement))
+                        
+                        num_wp_between = closest_idx + self.light_idx
+                        
+                        for i in range(num_wp_between):
+                            temp_current_vel = self.get_waypoint_velocity(final_waypoints.waypoints[i])
+                            new_vel = temp_current_vel - speed_decrement*(i+1)
+                            
+                            self.set_waypoint_velocity(final_waypoints.waypoints, i, new_vel)
+                            
+                            # Check to make sure we don't go out of bounds
+                            if i >= len(final_waypoints.waypoints) - 1:
+                                break
+
+                                
 
                 # Publish the waypoints
                 self.final_waypoints_pub.publish(final_waypoints)
@@ -134,8 +176,8 @@ class WaypointUpdater(object):
             self.kdt_waypoints = KDTree(self.xy_waypoints)
 
     def traffic_cb(self, msg):
-        # TODO: Callback for /traffic_waypoint message. Implement
-        pass
+        # Grab the index of the closest red light to the car
+        self.light_idx = msg.data
 
     def obstacle_cb(self, msg):
         # TODO: Callback for /obstacle_waypoint message. We will implement it later
