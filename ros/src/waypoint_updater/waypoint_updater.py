@@ -129,19 +129,21 @@ class WaypointUpdater(object):
                     print("Car: {}".format(closest_idx))
                     print("Light: {}".format(self.light_idx))
                     
-                    # TODO: Somehow getting zero distance between these? Light idx also keeps being behind the closest idx
+                    # TODO: Light idx also keeps being behind the closest idx
                     dist = self.distance(self.all_waypoints.waypoints, closest_idx, self.light_idx)
                     
                     print("Distance {}".format(dist))
                     
+                    # TODO: Fix car not going again after coming to a stop. Car also doesn't seems to decrease speed for stop lights again now. Cool
+                    
                     # If within the threshold then begin decelerating the car
-                    if dist <= 25 and closest_idx < self.light_idx:
+                    if dist <= 100 and closest_idx < self.light_idx:
                         current_vel = self.get_waypoint_velocity(self.all_waypoints.waypoints[closest_idx])
                         speed_decrement = float(self.light_idx - closest_idx)/current_vel
                         
                         print("Decrement {}".format(speed_decrement))
                         
-                        num_wp_between = closest_idx + self.light_idx
+                        num_wp_between = closest_idx - self.light_idx
                         
                         for i in range(num_wp_between):
                             temp_current_vel = self.get_waypoint_velocity(final_waypoints.waypoints[i])

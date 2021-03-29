@@ -157,6 +157,7 @@ class TLDetector(object):
         # List of positions that correspond to the line to stop in front of for a given intersection
         stop_line_positions = self.config['stop_line_positions']
         if(self.pose):
+            # TODO: Check if this matches with the car wp in the waypoint updater code
             car_nearest_wp_idx = self.get_closest_waypoint(self.pose.pose.position.x, self.pose.pose.position.y)
             
             # Find the closest traffic light waypoint to the car's wp
@@ -172,7 +173,7 @@ class TLDetector(object):
                 closest_wp_idx = self.get_closest_waypoint(stop_line[0], stop_line[1])
                 
                 # Get the number of waypoints between the car and the stop line
-                dist = car_nearest_wp_idx - closest_wp_idx
+                dist = closest_wp_idx - car_nearest_wp_idx
                 
                 # If the stop line is in front of the car and there are fewer waypoints in between than the current best then update
                 if dist >= 0 and dist < diff:
