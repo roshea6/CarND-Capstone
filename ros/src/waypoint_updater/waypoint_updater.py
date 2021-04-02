@@ -28,6 +28,7 @@ TODO (for Yousuf and Aaron): Stopline location for each traffic light.
 
 # Having this number at 200 broke the code. I think it was taking too long to generate that many waypoints so the path would lag in the simulator
 LOOKAHEAD_WPS = 75 # Number of waypoints we will publish. You can change this number
+MAX_DECEL = .5
 
 
 class WaypointUpdater(object):
@@ -121,44 +122,43 @@ class WaypointUpdater(object):
                     
                 # Populate the final waypoints with the n many waypoints after the closest coordinate index
                 final_waypoints.header = self.all_waypoints.header
-                final_waypoints.waypoints = self.all_waypoints.waypoints[closest_idx: closest_idx + LOOKAHEAD_WPS]    
+                waypoint_end = closest_idx + LOOKAHEAD_WPS
+                final_waypoints.waypoints = self.all_waypoints.waypoints[closest_idx: waypoint_end]    
                 
-                
-                # TODO: Determine if the closest traffic light waypoint is within a certain distance threshold
-                if not self.light_idx == -1:
-                    print("Car: {}".format(closest_idx))
-                    print("Light: {}".format(self.light_idx))
-                    
-                    # TODO: Light idx also keeps being behind the closest idx
-                    dist = self.distance(self.all_waypoints.waypoints, closest_idx, self.light_idx)
-                    
-                    print("Distance {}".format(dist))
-                    
-                    # TODO: Fix car not going again after coming to a stop. Car also doesn't seems to decrease speed for stop lights again now. Cool
-                    
-                    # If within the threshold then begin decelerating the car
-                    if dist <= 100 and closest_idx < self.light_idx:
-                        current_vel = self.get_waypoint_velocity(self.all_waypoints.waypoints[closest_idx])
-                        speed_decrement = float(self.light_idx - closest_idx)/current_vel
-                        
-                        print("Decrement {}".format(speed_decrement))
-                        
-                        num_wp_between = closest_idx - self.light_idx
-                        
-                        for i in range(num_wp_between):
-                            temp_current_vel = self.get_waypoint_velocity(final_waypoints.waypoints[i])
-                            new_vel = temp_current_vel - speed_decrement*(i+1)
-                            
-                            self.set_waypoint_velocity(final_waypoints.waypoints, i, new_vel)
-                            
-                            # Check to make sure we don't go out of bounds
-                            if i >= len(final_waypoints.waypoints) - 1:
-                                break
+                # If no lights are red or the red lights are far away then just use the standard waypoints
+                if self.light_idx == -1 or self.light_idx >= waypoint_end:
+                    # Publish the waypoints
+                    self.final_waypoints_pub.publish(final_waypoints)
+                # Otherwise decrement speed of the waypoints leading up to the stop line
+                else:         
+                    # Temp list to hold our deceleration waypoints
+                    temp_waypoints = []
 
-                                
+                    for i, wp in enumerate(final_waypoints.waypoints):
+                        # Create a Waypoint object which will be added to our list
+                        new_wp = Waypoint()
+                        
+                        # Copy over the pose because it shouldn't change. Only the velocity should change
+                        new_wp.pose = wp.pose
+                        
+                        # Get the index of the waypoint we want to stop at. Ideally 2 waypoints behind the stop line so the nose of the car is at the line 
+                        stop_idx = max(self.light_idx - closest_idx - 2, 0) # Subtract closest_idx to get the index in terms of the subsection of waypoints
+                        
+                        dist = self.distance(final_waypoints.waypoints, i, stop_idx)
+                        
+                        new_vel = math.sqrt(2 * MAX_DECEL * dist)
+                        
+                        # Round low velocities down to a stop
+                        if new_vel < 1:
+                            new_vel = 0
+                            
+                        new_wp.twist.twist.linear.x = min(new_vel, wp.twist.twist.linear.x)
+                        
+                        temp_waypoints.append(new_wp)
+                        
+                    final_waypoints.waypoints = temp_waypoints 
 
-                # Publish the waypoints
-                self.final_waypoints_pub.publish(final_waypoints)
+                    self.final_waypoints_pub.publish(final_waypoints)
             # Sleep to hit the desired frequency
             rate.sleep()
                 
