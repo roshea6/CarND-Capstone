@@ -6,6 +6,7 @@ from styx_msgs.msg import Lane, Waypoint
 from std_msgs.msg import Int32
 import numpy as np
 from scipy.spatial import KDTree
+import cv2
 
 import math
 
@@ -45,6 +46,7 @@ class WaypointUpdater(object):
         
         self.final_waypoints_pub = rospy.Publisher('final_waypoints', Lane, queue_size=1)
         
+        self.data_collection = True
        
 
         # TODO: Add other member variables you need below
@@ -141,8 +143,8 @@ class WaypointUpdater(object):
                         # Copy over the pose because it shouldn't change. Only the velocity should change
                         new_wp.pose = wp.pose
                         
-                        # Get the index of the waypoint we want to stop at. Ideally 2 waypoints behind the stop line so the nose of the car is at the line 
-                        stop_idx = max(self.light_idx - closest_idx - 2, 0) # Subtract closest_idx to get the index in terms of the subsection of waypoints
+                        # Get the index of the waypoint we want to stop at. Ideally 3 waypoints behind the stop line so the nose of the car is at the line 
+                        stop_idx = max(self.light_idx - closest_idx - 3, 0) # Subtract closest_idx to get the index in terms of the subsection of waypoints
                         
                         dist = self.distance(final_waypoints.waypoints, i, stop_idx)
                         

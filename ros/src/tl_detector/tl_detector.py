@@ -52,6 +52,17 @@ class TLDetector(object):
         self.last_state = TrafficLight.UNKNOWN
         self.last_wp = -1
         self.state_count = 0
+        
+        # Variables for data collection
+        self.save_path = "/home/workspace/CarND-Capstone/ros/src/tl_detector/light_classification/data/"
+        self.green_path = self.save_path + 'green/'
+        self.yellow_path = self.save_path + 'yellow/'
+        self.red_path = self.save_path + 'red/'
+        
+        self.green_num = 0
+        self.yellow_num = 0
+        self.red_num = 0
+        
 
         rospy.spin()
 
@@ -129,7 +140,7 @@ class TLDetector(object):
             int: ID of traffic light color (specified in styx_msgs/TrafficLight)
 
         """
-        return light.state
+        
 #         if(not self.has_image):
 #             self.prev_light_loc = None
 #             return False
@@ -138,6 +149,8 @@ class TLDetector(object):
 
 #         #Get classification
 #         return self.light_classifier.get_classification(cv_image)
+
+        return light.state
 
     def process_traffic_lights(self):
         """Finds closest visible traffic light, if one exists, and determines its
@@ -186,6 +199,24 @@ class TLDetector(object):
         # This will be changed to return the classifier output instead
         if closest_light:
             state = self.get_light_state(closest_light)
+            
+            # Check if the car is close enough to see the traffic light
+            if line_wp_idx - car_nearest_wp_idx < 75 and self.has_image:
+                # Convert to an opencv image so we can save it nicely
+                cv_img = self.bridge.imgmsg_to_cv2(self.camera_image, "bgr8")
+                
+                # Use the state of the light to save it to the correct subfolder
+                if state == TrafficLight.GREEN:
+                    cv2.imwrite(self.green_path + str(self.green_num) + '.jpg', cv_img)
+                    self.green_num = self.green_num + 1
+                elif state == TrafficLight.YELLOW:
+                    cv2.imwrite(self.yellow_path + str(self.yellow_num) + '.jpg', cv_img)
+                    self.yellow_num = self.yellow_num + 1
+                elif state == TrafficLight.RED:
+                    cv2.imwrite(self.red_path + str(self.red_num) + '.jpg', cv_img)
+                    self.red_num = self.red_num + 1
+                    
+            
             return line_wp_idx, state
         #self.waypoints = None
         
