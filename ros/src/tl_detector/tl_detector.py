@@ -10,6 +10,7 @@ from light_classification.tl_classifier import TLClassifier
 import tf
 import cv2
 import yaml
+import uuid
 
 from scipy.spatial import KDTree
 
@@ -59,9 +60,11 @@ class TLDetector(object):
         self.yellow_path = self.save_path + 'yellow/'
         self.red_path = self.save_path + 'red/'
         
-        self.green_num = 0
-        self.yellow_num = 0
-        self.red_num = 0
+        # Used to determine which colors of light we want to save pictures of 
+        # Set all to false if we don't need any more data
+        self.cap_green = False
+        self.cap_yellow = True
+        self.cap_red = False
         
 
         rospy.spin()
@@ -205,16 +208,19 @@ class TLDetector(object):
                 # Convert to an opencv image so we can save it nicely
                 cv_img = self.bridge.imgmsg_to_cv2(self.camera_image, "bgr8")
                 
+                # Generate a unique identifier for the image name so we save a unique name every time
+                img_id = str(uuid.uuid1())
+                
                 # Use the state of the light to save it to the correct subfolder
-                if state == TrafficLight.GREEN:
-                    cv2.imwrite(self.green_path + str(self.green_num) + '.jpg', cv_img)
-                    self.green_num = self.green_num + 1
-                elif state == TrafficLight.YELLOW:
-                    cv2.imwrite(self.yellow_path + str(self.yellow_num) + '.jpg', cv_img)
-                    self.yellow_num = self.yellow_num + 1
-                elif state == TrafficLight.RED:
-                    cv2.imwrite(self.red_path + str(self.red_num) + '.jpg', cv_img)
-                    self.red_num = self.red_num + 1
+                if state == TrafficLight.GREEN and self.cap_green:
+                    cv2.imwrite(self.green_path + img_id + '.jpg', cv_img)
+                    #self.green_num = self.green_num + 1
+                elif state == TrafficLight.YELLOW and self.cap_yellow:
+                    cv2.imwrite(self.yellow_path + img_id + '.jpg', cv_img)
+                    #self.yellow_num = self.yellow_num + 1
+                elif state == TrafficLight.RED and self.cap_red:
+                    cv2.imwrite(self.red_path + img_id + '.jpg', cv_img)
+                    #self.red_num = self.red_num + 1
                     
             
             return line_wp_idx, state
