@@ -1,11 +1,13 @@
-from styx_msgs.msg import TrafficLight
+# from styx_msgs.msg import TrafficLight
 
-import tensorflow as tf 
+# import tensorflow as tf 
 import cv2, glob
 import numpy as np 
 
 from keras.models import Sequential
-from keras.layers import Dense, Conv2D, MaxPool2D, Dropout, Flatten
+# from keras.layers import Dense, Conv2D, MaxPool2D, Dropout, Flatten
+from keras.layers import Convolution2D, Dense, Flatten, Lambda
+from keras.layers import MaxPooling2D, Cropping2D, ELU, Dropout
 from keras.models import load_model
 from keras.callbacks import ModelCheckpoint
 from keras.utils import to_categorical
@@ -17,7 +19,8 @@ from keras.utils import to_categorical
 class TLClassifier(object):
     def __init__(self):
         #TODO load classifier
-        self.save_path = "/home/workspace/CarND-Capstone/ros/src/tl_detector/light_classification/data/"
+        # self.save_path = "/home/workspace/CarND-Capstone/ros/src/tl_detector/light_classification/data/"
+        self.save_path = "./data/"
         self.green_path = self.save_path + 'green/'
         self.yellow_path = self.save_path + 'yellow/'
         self.red_path = self.save_path + 'red/'
@@ -76,51 +79,92 @@ class TLClassifier(object):
         model = Sequential()
 
         # Takes in a 600x800x3 image
-        model.add(Conv2D(32, (3,3), input_shape = self.img_shape, activation = 'relu'))
-        #model.add(Conv2D(32, (3,3), activation = 'relu'))
+        model.add(Convolution2D(32, 3, 3, subsample=(2,2), input_shape = self.img_shape, activation = 'relu'))
+        # model.add(Convolution2D(32, 3, 3, subsample=(2,2), activation = 'relu'))
 
-        model.add(Conv2D(64, (3,3), activation = 'relu'))
+        model.add(MaxPooling2D((2,2)))
+
+        model.add(Convolution2D(64, 3, 3, subsample=(2,2), activation = 'relu'))
+        # model.add(Convolution2D(64, 3, 3, subsample=(2,2), activation = 'relu'))
         #model.add(Conv2D(64, (3,3), activation = 'relu'))
 
-        model.add(MaxPool2D((2,2)))
+        model.add(MaxPooling2D((2,2)))
 
-        model.add(Conv2D(128, (3,3), activation = 'relu'))
+        # model.add(Convolution2D(128, 3, 3, subsample=(2,2), activation = 'relu'))
+        # model.add(Convolution2D(128, 3, 3, subsample=(2,2), activation = 'relu'))
         #model.add(Conv2D(128, (3,3), activation = 'relu'))
+
+        # model.add(MaxPooling2D((2,2)))
 
         model.add(Flatten())
 
         model.add(Dropout(0.40))
         model.add(Dense(256, activation = 'relu'))
-        model.add(Dropout(0.40))
+        # model.add(Dropout(0.40))
 
         model.add(Dense(3, activation = 'softmax'))
+
+        # Convolution layer 1 with 24 5x5 filters
+        # model.add(Convolution2D(24, 5, 5, subsample=(2,2), input_shape = self.img_shape, activation='relu'))
+        # # model.add(Dropout(.2))
+
+        # # Convolution layer 2 with 36 5x5 filters
+        # model.add(Convolution2D(36, 5, 5, subsample=(2,2), activation='relu'))
+
+        # # Convolution layer 3 with 48 5x5 filters
+        # model.add(Convolution2D(48, 5, 5, subsample=(2,2), activation='relu'))
+
+        # # Convolution layer 4 with 64 3x3 filters
+        # model.add(Convolution2D(64, 3, 3, activation='relu'))
+
+        # # Convolution layer 5 with 64 3x3 filters
+        # model.add(Convolution2D(64, 3, 3, activation='relu'))
+
+        # # Flatten the output of the last convolution layer so it can be connected with a fully connected layer
+        # model.add(Flatten())
+
+        # # Fully Connected layer 1
+        # model.add(Dense(100))
+        # model.add(Dropout(.50))
+
+        # # Fully Connected layer 2
+        # model.add(Dense(50))
+        # model.add(Dropout(.50))
+
+        # # Fully Connected layer 2
+        # model.add(Dense(10))
+
+        # # Output single node (The steering angle)
+        # model.add(Dense(3, activation = 'softmax'))
         
         # Split into training and validation data
         # img_train, img_test, label_train, label_test = train_test_split(imgs, labels, test_size = 0.20, random_state = 7, shuffle = True)
 
         # Compile the model with the optimizer, loss function, and desired metric
-        model.compile(optimizer='SGD', loss='categorical_crossentropy', metrics=['accuracy'])
+        model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
 
         # Callback checkpoint to save the model's weights whenever it improves over the best
-        checkpoint = ModelCheckpoint(self.save_file, monitor='accuracy', verbose=1, save_best_only=True, mode='auto', period=1)
+        checkpoint = ModelCheckpoint("test.h5", monitor='accuracy', verbose=1, save_best_only=True, mode='auto', period=1)
 
         # Train the model with our data 
-        model.fit(x = imgs, y = labels, batch_size = 128, epochs = 10, validation_split=.2, callbacks=[checkpoint])
+        model.fit(x = imgs, y = labels, epochs = 10, validation_split=.2, callbacks=[checkpoint])
 
-        self.evaluateModel(model, img_train, label_train)
+        model.save("test.h5")
 
-    def get_classification(self, image):
-        """Determines the color of the traffic light in the image
+        # self.evaluateModel(model, img_train, label_train)
 
-        Args:
-            image (cv::Mat): image containing the traffic light
+    # def get_classification(self, image):
+    #     """Determines the color of the traffic light in the image
 
-        Returns:
-            int: ID of traffic light color (specified in styx_msgs/TrafficLight)
+    #     Args:
+    #         image (cv::Mat): image containing the traffic light
 
-        """
-        #TODO implement light color prediction
-        return TrafficLight.UNKNOWN
+    #     Returns:
+    #         int: ID of traffic light color (specified in styx_msgs/TrafficLight)
+
+    #     """
+    #     #TODO implement light color prediction
+    #     return TrafficLight.UNKNOWN
     
 # Use main function to test data loading and training
 if __name__ == '__main__':
