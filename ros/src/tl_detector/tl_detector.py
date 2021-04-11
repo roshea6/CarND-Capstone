@@ -63,7 +63,7 @@ class TLDetector(object):
         # Used to determine which colors of light we want to save pictures of 
         # Set all to false if we don't need any more data
         self.cap_green = False
-        self.cap_yellow = True
+        self.cap_yellow = False
         self.cap_red = False
         
 
@@ -204,7 +204,7 @@ class TLDetector(object):
             state = self.get_light_state(closest_light)
             
             # Check if the car is close enough to see the traffic light
-            if line_wp_idx - car_nearest_wp_idx < 75 and self.has_image:
+            if line_wp_idx - car_nearest_wp_idx < 50 and self.has_image:
                 # Convert to an opencv image so we can save it nicely
                 cv_img = self.bridge.imgmsg_to_cv2(self.camera_image, "bgr8")
                 
