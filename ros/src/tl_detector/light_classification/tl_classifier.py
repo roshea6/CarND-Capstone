@@ -29,7 +29,7 @@ class TLClassifier(object):
         
         self.save_file = "./models/newest_model.h5"
         
-        self.current_best_model = "./models/best_model.h5"
+        self.current_best_model = "./models/newest_model.h5"
     
     def loadData(self):
         training_imgs = []
@@ -54,7 +54,7 @@ class TLClassifier(object):
         if len(training_imgs) > 0:
             self.img_shape = training_imgs[0].shape
             
-        return np.asarray(training_imgs), np.asarray(training_labels)
+        return np.array(training_imgs), np.array(training_labels)
     
     def trainModel(self):
         # Get the training images and labels
@@ -71,7 +71,7 @@ class TLClassifier(object):
         # Define our CNN
         model = Sequential()
         
-        # Takes in a 600x800x3 image and normalize it
+        # Takes in a 600x800x3 image and normalizes it
         model.add(Lambda(lambda x: (x/255.0) - 0.5, input_shape = self.img_shape))
 
         model.add(Convolution2D(32, 3, 3, subsample=(2,2), activation = 'relu'))
@@ -105,12 +105,7 @@ class TLClassifier(object):
         
     # Load and returns the current best model
     def loadModel(self):
-        print(f"Loading model from {self.current_best_model}")
-
         model = load_model(self.current_best_model)
-
-        # Shape the image to the desired size
-        
 
         return model
         
@@ -130,10 +125,16 @@ class TLClassifier(object):
         model = self.loadModel()
         
         # Resize the image to the size the model takes
-        image = cv2.resize(image, self.image_shape)
+        image = cv2.resize(image, (self.img_shape[1], self.img_shape[0]))
+        
+        # Convert to a numpy array
+        arr_img = np.asarray(image)
+        
+        # Add an extra dimension so the network will accept it. Essentially creates a batch of size 1 to feed into the network
+        arr_img = arr_img.reshape(1, arr_img.shape[0], arr_img.shape[1], arr_img.shape[2])
         
         # Get the output of the neural net
-        pred = model.predict(image)
+        pred = model.predict(arr_img)
         
         # Order the output from highest to lowest
         pred_class = pred.argmax(axis=-1)
@@ -149,11 +150,13 @@ class TLClassifier(object):
 if __name__ == '__main__':
     classifier = TLClassifier()
     
+#     classifier.trainModel()
+    
 #     imgs, labels = classifier.loadData()
     
 #     print imgs.shape
 
-    img = cv2.imread("./data/green/0.jpg")
+    img = cv2.imread("./data/red/0.jpg")
     
     classifier.get_classification(img)
     
