@@ -133,7 +133,7 @@ class TLDetector(object):
         closest_wp_idx = self.kdt_waypoints.query([x, y], 1)[1] # Index 1 grabs the index of the result instead of the result point
         return closest_wp_idx
 
-    def get_light_state(self, light):
+    def get_light_state(self, img, light):
         """Determines the current color of the traffic light
 
         Args:
@@ -143,17 +143,13 @@ class TLDetector(object):
             int: ID of traffic light color (specified in styx_msgs/TrafficLight)
 
         """
-        
-#         if(not self.has_image):
-#             self.prev_light_loc = None
-#             return False
+        # If we're doing data collection then use the passed in light's state
+        if self.cap_green or self.cap_yellow or self.cap_red:
+            return light.state
 
-#         cv_image = self.bridge.imgmsg_to_cv2(self.camera_image, "bgr8")
+        # Otherwise get the classificaiton from our classifier
+        return self.light_classifier.get_classification(img)
 
-#         #Get classification
-#         return self.light_classifier.get_classification(cv_image)
-
-        return light.state
 
     def process_traffic_lights(self):
         """Finds closest visible traffic light, if one exists, and determines its
@@ -197,17 +193,17 @@ class TLDetector(object):
                     closest_light = light
                     line_wp_idx = closest_wp_idx
 
-        #TODO find the closest visible traffic light (if one exists)
-
         # This will be changed to return the classifier output instead
-        if closest_light:
-            state = self.get_light_state(closest_light)
-            
+        if closest_light:            
             # Check if the car is close enough to see the traffic light
-            if line_wp_idx - car_nearest_wp_idx < 50 and self.has_image:
+            if line_wp_idx - car_nearest_wp_idx < 150 and self.has_image:
+                
                 # Convert to an opencv image so we can save it nicely
                 cv_img = self.bridge.imgmsg_to_cv2(self.camera_image, "bgr8")
                 
+                # Get the state of the closest light
+                state = self.get_light_state(cv_img, light)
+              
                 # Generate a unique identifier for the image name so we save a unique name every time
                 img_id = str(uuid.uuid1())
                 
@@ -223,7 +219,7 @@ class TLDetector(object):
                     #self.red_num = self.red_num + 1
                     
             
-            return line_wp_idx, state
+                return line_wp_idx, state
         #self.waypoints = None
         
         # If no traffic light is detected or we can't determine its state then return -1
