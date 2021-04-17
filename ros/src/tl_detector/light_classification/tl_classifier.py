@@ -15,8 +15,6 @@ from keras.utils import to_categorical
 import tensorflow as tf
 graph = tf.get_default_graph()
 
-# from skimage import io
-# from sklearn.model_selection import train_test_split
 
 class TLClassifier(object):
     def __init__(self):
@@ -86,6 +84,7 @@ class TLClassifier(object):
 
         model.add(Dropout(0.40))
         model.add(Dense(256, activation = 'relu'))
+        model.add(Dropout(0.40))
 
         model.add(Dense(3, activation = 'softmax'))
 
@@ -93,7 +92,7 @@ class TLClassifier(object):
         model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
 
         # Train the model with our data 
-        model.fit(x = imgs, y = labels, epochs = 4, shuffle=True, validation_split=.2)
+        model.fit(x = imgs, y = labels, epochs = 10, shuffle=True, validation_split=.2)
 
         # Save the model when it's done training
         model.save(self.save_file)
@@ -140,10 +139,13 @@ class TLClassifier(object):
         
         # Return the state of the traffic light based on the classification returned
         if best_class == 0:
+            print "Green Light"
             return TrafficLight.GREEN
         elif best_class == 1:
+            print "Yellow Light"
             return TrafficLight.YELLOW
         elif best_class == 2:
+            print "Red Light"
             return TrafficLight.RED
         
         return TrafficLight.UNKNOWN

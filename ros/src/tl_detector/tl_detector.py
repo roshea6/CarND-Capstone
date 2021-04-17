@@ -111,7 +111,8 @@ class TLDetector(object):
             self.state = state
         elif self.state_count >= STATE_COUNT_THRESHOLD:
             self.last_state = self.state
-            light_wp = light_wp if state == TrafficLight.RED else -1
+            # If the upcoming light is either red or yellow set the light_wp equal to that light index
+            light_wp = light_wp if (state == TrafficLight.RED or state == TrafficLight.YELLOW) else -1
             self.last_wp = light_wp
             self.upcoming_red_light_pub.publish(Int32(light_wp))
         else:
@@ -128,7 +129,6 @@ class TLDetector(object):
             int: index of the closest waypoint in self.waypoints
 
         """
-        #TODO implement
         # Query the KD Tree of waypoints to get the index of the one closest to the car
         closest_wp_idx = self.kdt_waypoints.query([x, y], 1)[1] # Index 1 grabs the index of the result instead of the result point
         return closest_wp_idx
@@ -169,7 +169,7 @@ class TLDetector(object):
         # List of positions that correspond to the line to stop in front of for a given intersection
         stop_line_positions = self.config['stop_line_positions']
         if(self.pose):
-            # TODO: Check if this matches with the car wp in the waypoint updater code
+            # Get the closest waypoint to the car
             car_nearest_wp_idx = self.get_closest_waypoint(self.pose.pose.position.x, self.pose.pose.position.y)
             
             # Find the closest traffic light waypoint to the car's wp
@@ -193,10 +193,9 @@ class TLDetector(object):
                     closest_light = light
                     line_wp_idx = closest_wp_idx
 
-        # This will be changed to return the classifier output instead
         if closest_light:            
             # Check if the car is close enough to see the traffic light
-            if line_wp_idx - car_nearest_wp_idx < 150 and self.has_image:
+            if line_wp_idx - car_nearest_wp_idx < 100 and self.has_image:
                 
                 # Convert to an opencv image so we can save it nicely
                 cv_img = self.bridge.imgmsg_to_cv2(self.camera_image, "bgr8")

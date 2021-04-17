@@ -25,8 +25,6 @@ as well as to verify your TL classifier.
 TODO (for Yousuf and Aaron): Stopline location for each traffic light.
 '''
 
-# TODO: Car seems to break after 1 full lap? Waypoints just stopped updating for a while and car swered off track
-
 # Having this number at 200 broke the code. I think it was taking too long to generate that many waypoints so the path would lag in the simulator
 LOOKAHEAD_WPS = 50 # Number of waypoints we will publish. You can change this number
 MAX_DECEL = .5
@@ -48,8 +46,6 @@ class WaypointUpdater(object):
         
         self.data_collection = True
        
-
-        # TODO: Add other member variables you need below
         # Store the pose of the car from the simulator
         self.car_pose = None
         
@@ -72,7 +68,6 @@ class WaypointUpdater(object):
 
     # Looks through all the waypoints to find the first n waypoints in front of the car's current pose
     def pose_cb(self, msg):
-        # TODO: Implement
         self.car_pose = msg
         
     # Generate waypoints at a 50 hz rate
@@ -168,7 +163,6 @@ class WaypointUpdater(object):
 
     # Stores the list of all waypoints in a local Lane message which will be used to determine which points are directly ahead of the car
     def waypoints_cb(self, waypoints):
-        # TODO: Implement
         self.all_waypoints = waypoints
         
         # If the 2d waypoints and kd tree waypoints haven't been created yet then create them

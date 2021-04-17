@@ -8,7 +8,6 @@ import rospy
 
 class Controller(object):
     def __init__(self, vehicle_mass, fuel_capacity, decel_limit, accel_limit, wheel_radius, wheel_base, steer_ratio, min_speed, max_lat_accel, max_steer_angle):
-        # TODO: Implement
         # Create the controllers we'll use to generate the throttle, brake, and steer commands
         
         self.total_mass = vehicle_mass + fuel_capacity*GAS_DENSITY
@@ -23,8 +22,7 @@ class Controller(object):
         
 
     def control(self, proposed_lin_vel, proposed_ang_vel, current_vel, dbw_status):
-        # TODO: Change the arg, kwarg list to suit your needs
-        # Return throttle, brake, steer
+        # Calculate the current velocity error
         vel_error = proposed_lin_vel - current_vel
         
         # Get the time between steps
@@ -38,6 +36,7 @@ class Controller(object):
             self.pid.reset()
             return 0.0, 0.0, 0.0
         
+        # Get the result from the PID controller based on current error and time passed
         res = self.pid.step(vel_error, sample_time)
         
         throttle = 0
@@ -53,5 +52,5 @@ class Controller(object):
         
         # Use the yaw controller to calculate the steering angle
         steer = self.yaw_control.get_steering(proposed_lin_vel, proposed_ang_vel, current_vel)
-#         print(steer)
+
         return throttle, brake, steer

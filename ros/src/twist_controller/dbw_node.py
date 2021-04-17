@@ -54,7 +54,7 @@ class DBWNode(object):
         self.brake_pub = rospy.Publisher('/vehicle/brake_cmd',
                                          BrakeCmd, queue_size=1)
 
-        # TODO: Create `Controller` object
+        # Create `Controller` object
         self.controller = Controller(vehicle_mass, fuel_capacity, decel_limit, accel_limit, wheel_radius, wheel_base, steer_ratio, brake_deadband, max_lat_accel, max_steer_angle)
 
         # Variables for storing current velocity and desired velocity
@@ -65,7 +65,7 @@ class DBWNode(object):
         # Keep track of drive by wire status
         self.dbw_status = None
         
-        # TODO: Subscribe to all the topics you need to
+        # Subscribe to all the topics you need to
         rospy.Subscriber('/current_velocity', TwistStamped, self.currentVelCallback)
         rospy.Subscriber('/twist_cmd', TwistStamped, self.proposedVelCallback)
         rospy.Subscriber('/vehicle/dbw_enabled', Bool, self.dbwUpdateCallback)
@@ -76,7 +76,7 @@ class DBWNode(object):
     def loop(self):
         rate = rospy.Rate(50) # 50Hz
         while not rospy.is_shutdown():
-            # TODO: Get predicted throttle, brake, and steering using `twist_controller`
+            # Get predicted throttle, brake, and steering using `twist_controller`
             # You should only publish the control commands if dbw is enabled
             if not None in (self.proposed_lin_vel, self.proposed_ang_vel, self.current_vel): 
                 throttle, brake, steering = self.controller.control(self.proposed_lin_vel,
@@ -85,13 +85,7 @@ class DBWNode(object):
                                                                     self.dbw_status)
                 if self.dbw_status == True:
                   self.publish(throttle, brake, steering)
-                #else:
-                    #print("Car currently not in DBW mode")
-            #else:
-                #print("One of the vel values is None")
-                #print("Proposed lin {}".format(self.proposed_lin_vel))
-                #print("Proposed ang {}".format(self.proposed_ang_vel))
-                #print("Actual lin {}".format(self.current_vel))
+
             rate.sleep()
 
     def publish(self, throttle, brake, steer):
