@@ -12,8 +12,6 @@ from keras.models import load_model
 from keras.callbacks import ModelCheckpoint
 from keras.utils import to_categorical
 
-from keras.preprocessing.image import ImageDataGenerator
-
 import tensorflow as tf
 graph = tf.get_default_graph()
 

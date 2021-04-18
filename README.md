@@ -1,7 +1,5 @@
 This is the project repo for the final project of the Udacity Self-Driving Car Nanodegree: Programming a Real Self-Driving Car. For more information about the project, see the project introduction [here](https://classroom.udacity.com/nanodegrees/nd013/parts/6047fe34-d93c-4f50-8336-b70ef10cb4b2/modules/e1a23b06-329a-4684-a717-ad476f0d8dff/lessons/462c933d-9f24-42d3-8bdc-a08a5fc866e4/concepts/5ab4b122-83e6-436d-850f-9f4d26627fd9).
 
-Ryan O'Shea
-
 Please use **one** of the two installation options, either native **or** docker installation.
 
 ### Native Installation
@@ -74,3 +72,14 @@ cd CarND-Capstone/ros
 roslaunch launch/site.launch
 ```
 5. Confirm that traffic light detection works on real life images
+
+
+# Results
+The results of the project can be seen in the following video: https://youtu.be/BkCbJkp_KcI
+
+The video is fairly long so watching it at 2x speed is probably preferable. The car was testing at various speeds up to 45 mph and still worked well for the most part. Once the car went past 40 mph there was strange behaviour when stopping and turning. This is likely due to the car having a fairly short lookahead horizon. Due to limitations with the workspace simulator I can only have the car look 50 waypoints ahead before there were noticeable performance issues. The higher speeds cause the car to run through these 50 waypoints significantly faster so the system can't respond fast enough. If I was able to run this on a local powerful machine I believe this limitations would be gone and I would be able to extend the lookahead range by quite a bit and handle higher speeds.
+
+The car was only tested in simulation because it won't be run in the real world due to the pandemic. Because of this I only trained the traffic light classifier on simulated images so performance in the real world would likely be poor. The network could easily be retrained with a set of real world images or real world images mixed with simulated images and most likely obtain good results. 
+
+# Acknowledgements
+The walkthrough videos for the project were heavily referenced when I got stuck on certain topics or needed some guidance on the proper direction to go. I also referenced the student help board a few times when trying to workout why the simulator was running so poorly.
