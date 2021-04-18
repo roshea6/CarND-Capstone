@@ -12,6 +12,8 @@ from keras.models import load_model
 from keras.callbacks import ModelCheckpoint
 from keras.utils import to_categorical
 
+from keras.preprocessing.image import ImageDataGenerator
+
 import tensorflow as tf
 graph = tf.get_default_graph()
 
@@ -43,14 +45,41 @@ class TLClassifier(object):
             training_imgs.append(img)
             training_labels.append(0)
             
+            # Flip the image vertically and horizantally to augment the image
+            v_flip = cv2.flip(img, 0)
+            training_imgs.append(v_flip)
+            training_labels.append(0)
+            
+            h_flip = cv2.flip(img, 1)
+            training_imgs.append(h_flip)
+            training_labels.append(0)
+            
         for img_name in glob.glob(self.yellow_path + '*.jpg'):
             img = cv2.imread(img_name, cv2.IMREAD_COLOR)
             training_imgs.append(img)
             training_labels.append(1)
             
+            # Flip the image vertically and horizantally to augment the image
+            v_flip = cv2.flip(img, 0)
+            training_imgs.append(v_flip)
+            training_labels.append(1)
+            
+            h_flip = cv2.flip(img, 1)
+            training_imgs.append(h_flip)
+            training_labels.append(1)
+            
         for img_name in glob.glob(self.red_path + '*.jpg'):
             img = cv2.imread(img_name, cv2.IMREAD_COLOR)
             training_imgs.append(img)
+            training_labels.append(2)
+            
+            # Flip the image vertically and horizantally to augment the image
+            v_flip = cv2.flip(img, 0)
+            training_imgs.append(v_flip)
+            training_labels.append(2)
+            
+            h_flip = cv2.flip(img, 1)
+            training_imgs.append(h_flip)
             training_labels.append(2)
          
         if len(training_imgs) > 0:
@@ -59,8 +88,11 @@ class TLClassifier(object):
         return np.array(training_imgs), np.array(training_labels)
     
     def trainModel(self):
+        print "Loading training data"
         # Get the training images and labels
         imgs, labels = self.loadData()
+        
+        print "Training on " + str(len(imgs)) + " images"
         
         # Convert the labels array to a categorical array. Will basically make each entry have a corresponding value for each of the classes
         # For example the entry for a green labeled image will be [1, 0, 0]
@@ -153,9 +185,11 @@ class TLClassifier(object):
 # Use main function to test data loading and training
 if __name__ == '__main__':
     classifier = TLClassifier()
-
-    img = cv2.imread("./data/red/0.jpg")
     
-    print classifier.get_classification(img)
+    classifier.trainModel()
+
+#     img = cv2.imread("./data/red/0.jpg")
+    
+#     print classifier.get_classification(img)
     
     
