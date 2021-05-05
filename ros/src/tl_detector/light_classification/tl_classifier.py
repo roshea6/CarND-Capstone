@@ -4,6 +4,7 @@ from styx_msgs.msg import TrafficLight
 import cv2, glob
 import numpy as np 
 
+import rospy
 from keras.models import Sequential
 # from keras.layers import Dense, Conv2D, MaxPool2D, Dropout, Flatten
 from keras.layers import Convolution2D, Dense, Flatten, Lambda
@@ -28,7 +29,7 @@ class TLClassifier(object):
         
         self.save_file = "./models/newest_model.h5"
         
-        self.current_best_model = "/home/workspace/CarND-Capstone/ros/src/tl_detector/light_classification/models/best_model.h5"
+        self.current_best_model = "./light_classification/models/best_model.h5"
         
         # Load the model once so it can be used by the get_classification function
         self.model = self.loadModel()
